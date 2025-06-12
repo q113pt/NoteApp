@@ -3,45 +3,34 @@ package com.example.noteapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.noteapp.model.Note
+import com.example.noteapp.ui.screen.NoteListScreen
 import com.example.noteapp.ui.theme.NoteAppTheme
+import com.example.noteapp.viewModel.NoteViewModel
+import com.example.noteapp.viewModel.NoteViewModelFactory
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
+            val viewModel: NoteViewModel = viewModel(factory = NoteViewModelFactory(application))
+            val notes by viewModel.allNotes.observeAsState(emptyList())
+
             NoteAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                NoteListScreen(
+                    notes = notes,
+                    onAddNote = { title, content ->
+                        val note = Note(title = title, content = content)
+                        viewModel.insert(note)
+                    },
+                    onDeleteNote = { note ->
+                        viewModel.delete(note)
+                    }
+                )
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    NoteAppTheme {
-        Greeting("Android")
     }
 }

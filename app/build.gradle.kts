@@ -44,7 +44,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.13" // Kiểm tra trong toml nếu bạn dùng Compose mới hơn
+        kotlinCompilerExtensionVersion = "1.5.13" //
     }
 }
 
@@ -58,6 +58,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.lifecycle.livedata.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+
 
     // Firebase
     implementation(platform(libs.firebase.bom))
@@ -94,4 +98,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+configurations.all {
+    exclude(group = "com.android.support", module = "support-compat")
 }
