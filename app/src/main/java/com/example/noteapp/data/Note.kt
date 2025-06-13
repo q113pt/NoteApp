@@ -13,7 +13,6 @@ data class Note(
     val voiceUri: String? = null,
     val reminderTime: Long? = null,
     val lastModified: Long = System.currentTimeMillis(),
-    val reminderTime: Long? = null,
     val isSynced: Boolean = false,
     val userId: String = ""
 )

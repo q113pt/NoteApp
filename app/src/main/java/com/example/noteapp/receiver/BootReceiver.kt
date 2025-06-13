@@ -21,7 +21,7 @@ class BootReceiver : BroadcastReceiver() {
                     for (note in notesWithReminder) {
                         ReminderScheduler.scheduleReminder(
                             context = context,
-                            noteId = note.id,
+                            noteId = note.title.hashCode(), // hoặc note.hashCode()
                             noteTitle = note.title,
                             triggerAtMillis = note.reminderTime!!
                         )
