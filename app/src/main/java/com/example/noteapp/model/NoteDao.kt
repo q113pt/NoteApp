@@ -12,6 +12,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE isSynced = 0")
     suspend fun getUnsyncedNotes(): List<Note>
 
+    @Query("SELECT * FROM notes WHERE reminderTime IS NOT NULL")
+    suspend fun getNotesWithReminder(): List<Note>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(note: Note)
 
