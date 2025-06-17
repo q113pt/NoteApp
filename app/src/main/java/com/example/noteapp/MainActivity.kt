@@ -1,8 +1,17 @@
 package com.example.noteapp
 
+import android.app.AlarmManager
+import android.content.Context
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.noteapp.model.Note
 import com.example.noteapp.ui.screen.NoteListScreen
@@ -10,15 +19,13 @@ import com.example.noteapp.ui.theme.NoteAppTheme
 import com.example.noteapp.util.ReminderScheduler
 import com.example.noteapp.viewModel.NoteViewModel
 import com.example.noteapp.viewModel.NoteViewModelFactory
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Tạo NotificationChannel nếu chưa có (Android 8+)
         createNotificationChannel()
+        requestExactAlarmPermissionIfNeeded()
 
         setContent {
             val viewModel: NoteViewModel = viewModel(factory = NoteViewModelFactory(application))
@@ -28,17 +35,22 @@ class MainActivity : ComponentActivity() {
                 NoteListScreen(
                     notes = notes,
                     onAddNote = { title, content, reminderTime ->
-                        val note = Note(title = title, content = content)
+                        val note = Note(
+                            title = title,
+                            content = content,
+                            reminderTime = reminderTime // ← thêm dòng này
+                        )
                         viewModel.insert(note)
 
-                        // Lập lịch nhắc nếu có thời gian hợp lệ
                         ReminderScheduler.scheduleReminder(
                             context = this,
-                            noteId = note.hashCode(), // dùng hashCode hoặc note.id nếu có
+                            noteId = note.id.hashCode(), // giữ nguyên nếu chưa chuyển id sang Int
                             noteTitle = note.title,
                             triggerAtMillis = reminderTime
                         )
-                    },
+
+
+            },
                     onDeleteNote = { note ->
                         viewModel.delete(note)
                     }
@@ -48,12 +60,28 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun createNotificationChannel() {
-        val channel = android.app.NotificationChannel(
-            "note_channel",
-            "Note Reminder",
-            android.app.NotificationManager.IMPORTANCE_HIGH
-        )
-        val manager = getSystemService(android.app.NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "note_channel" // phải trùng với Builder(context, channelId)
+            val channelName = "Note Reminder"
+            val descriptionText = "Channel for note reminders"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = descriptionText
+            }
+
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun requestExactAlarmPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                startActivity(intent)
+            }
+        }
     }
 }

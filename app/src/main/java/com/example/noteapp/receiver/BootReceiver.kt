@@ -16,12 +16,12 @@ class BootReceiver : BroadcastReceiver() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val noteDao = NoteDatabase.getDatabase(context).noteDao()
-                    val notesWithReminder = noteDao.getNotesWithReminder() // Chỉ lấy note có thời gian nhắc
+                    val notesWithReminder = noteDao.getNotesWithReminder()
 
                     for (note in notesWithReminder) {
                         ReminderScheduler.scheduleReminder(
                             context = context,
-                            noteId = note.title.hashCode(), // hoặc note.hashCode()
+                            noteId = note.title.hashCode(),
                             noteTitle = note.title,
                             triggerAtMillis = note.reminderTime!!
                         )
