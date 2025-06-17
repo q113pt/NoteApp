@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.lifecycle.livedata.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
 
 
 

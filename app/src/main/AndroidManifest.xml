@@ -5,6 +5,9 @@
 
     <!-- Permission để nhận sự kiện khởi động máy -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
 
     <application
         android:allowBackup="true"
@@ -32,7 +35,7 @@
         <!-- Receiver nhận thông báo nhắc -->
         <receiver
             android:name=".receiver.ReminderReceiver"
-            android:exported="false" />
+            android:exported="true" />
 
         <!-- Receiver xử lý khi khởi động máy -->
         <receiver

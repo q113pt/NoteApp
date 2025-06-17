@@ -1,5 +1,6 @@
 package com.example.noteapp.ui.screen
 
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -28,9 +29,11 @@ fun NoteListScreen(
 
     val calendar = remember { Calendar.getInstance() }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
 
         Text(text = "My Notes", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
@@ -52,23 +55,42 @@ fun NoteListScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(onClick = {
+            // Chọn ngày trước
             val now = Calendar.getInstance()
-            TimePickerDialog(
+            DatePickerDialog(
                 context,
-                { _, hour, minute ->
-                    calendar.set(Calendar.HOUR_OF_DAY, hour)
-                    calendar.set(Calendar.MINUTE, minute)
-                    calendar.set(Calendar.SECOND, 0)
-                    calendar.set(Calendar.MILLISECOND, 0)
-                    reminderTime = calendar.timeInMillis
-                    displayTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(calendar.time)
+                { _, year, month, dayOfMonth ->
+                    calendar.set(Calendar.YEAR, year)
+                    calendar.set(Calendar.MONTH, month)
+                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+
+                    // Sau khi chọn ngày thì mở dialog chọn giờ
+                    TimePickerDialog(
+                        context,
+                        { _, hour, minute ->
+                            calendar.set(Calendar.HOUR_OF_DAY, hour)
+                            calendar.set(Calendar.MINUTE, minute)
+                            calendar.set(Calendar.SECOND, 0)
+                            calendar.set(Calendar.MILLISECOND, 0)
+
+                            val selectedTime = calendar.timeInMillis
+                            reminderTime = selectedTime
+                            displayTime =
+                                SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(
+                                    calendar.time
+                                )
+                        },
+                        now.get(Calendar.HOUR_OF_DAY),
+                        now.get(Calendar.MINUTE),
+                        true
+                    ).show()
                 },
-                now.get(Calendar.HOUR_OF_DAY),
-                now.get(Calendar.MINUTE),
-                true
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH),
+                now.get(Calendar.DAY_OF_MONTH)
             ).show()
         }) {
-            Text("Chọn thời gian nhắc")
+            Text("Chọn ngày & giờ nhắc")
         }
 
         Text("Nhắc lúc: $displayTime", style = MaterialTheme.typography.labelSmall)
@@ -86,7 +108,11 @@ fun NoteListScreen(
                         reminderTime = null
                         displayTime = "Chưa chọn"
                     } else {
-                        Toast.makeText(context, "Vui lòng chọn thời gian hợp lệ", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Vui lòng chọn thời gian hợp lệ",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             },
@@ -108,8 +134,20 @@ fun NoteListScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(text = note.title, style = MaterialTheme.typography.titleMedium)
                         Text(text = note.content)
+                        note.reminderTime?.let {
+                            Text(
+                                text = "Nhắc lúc: " + SimpleDateFormat(
+                                    "HH:mm dd/MM/yyyy",
+                                    Locale.getDefault()
+                                ).format(Date(it)),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                         Text(
-                            text = SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(note.lastModified)),
+                            text = "Tạo lúc: " + SimpleDateFormat(
+                                "HH:mm dd/MM/yyyy",
+                                Locale.getDefault()
+                            ).format(Date(note.lastModified)),
                             style = MaterialTheme.typography.labelSmall
                         )
                         TextButton(onClick = { onDeleteNote(note) }) {
@@ -119,5 +157,6 @@ fun NoteListScreen(
                 }
             }
         }
+
     }
 }
