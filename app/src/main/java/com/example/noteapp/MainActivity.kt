@@ -1,9 +1,9 @@
 package com.example.noteapp
 
 import android.app.AlarmManager
-import android.content.Context
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -38,21 +38,37 @@ class MainActivity : ComponentActivity() {
                         val note = Note(
                             title = title,
                             content = content,
-                            reminderTime = reminderTime // ← thêm dòng này
+                            reminderTime = reminderTime
                         )
                         viewModel.insert(note)
 
                         ReminderScheduler.scheduleReminder(
                             context = this,
-                            noteId = note.id.hashCode(), // giữ nguyên nếu chưa chuyển id sang Int
+                            noteId = note.id.hashCode(),
                             noteTitle = note.title,
                             triggerAtMillis = reminderTime
                         )
-
-
-            },
+                    },
                     onDeleteNote = { note ->
                         viewModel.delete(note)
+                        ReminderScheduler.cancelReminder(
+                            context = this,
+                            noteId = note.id.hashCode()
+                        )
+                    },
+                    onUpdateNote = { updatedNote ->
+                        viewModel.update(updatedNote)
+                        updatedNote.reminderTime?.let {
+                            ReminderScheduler.scheduleReminder(
+                                context = this,
+                                noteId = updatedNote.id.hashCode(),
+                                noteTitle = updatedNote.title,
+                                triggerAtMillis = it
+                            )
+                        } ?: ReminderScheduler.cancelReminder(
+                            context = this,
+                            noteId = updatedNote.id.hashCode()
+                        )
                     }
                 )
             }
@@ -61,7 +77,7 @@ class MainActivity : ComponentActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "note_channel" // phải trùng với Builder(context, channelId)
+            val channelId = "note_channel"
             val channelName = "Note Reminder"
             val descriptionText = "Channel for note reminders"
             val importance = NotificationManager.IMPORTANCE_HIGH

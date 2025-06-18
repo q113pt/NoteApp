@@ -1,6 +1,7 @@
 package com.example.noteapp.ui.screen
 
 import android.app.DatePickerDialog
+import com.example.noteapp.util.ReminderScheduler
 import android.app.TimePickerDialog
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -19,7 +20,8 @@ import java.util.*
 fun NoteListScreen(
     notes: List<Note>,
     onAddNote: (String, String, Long) -> Unit,
-    onDeleteNote: (Note) -> Unit
+    onDeleteNote: (Note) -> Unit,
+    onUpdateNote: (Note) -> Unit // ← thêm hàm này để cập nhật note
 ) {
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
@@ -34,7 +36,6 @@ fun NoteListScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
         Text(text = "My Notes", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -55,7 +56,6 @@ fun NoteListScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(onClick = {
-            // Chọn ngày trước
             val now = Calendar.getInstance()
             DatePickerDialog(
                 context,
@@ -64,7 +64,6 @@ fun NoteListScreen(
                     calendar.set(Calendar.MONTH, month)
                     calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
 
-                    // Sau khi chọn ngày thì mở dialog chọn giờ
                     TimePickerDialog(
                         context,
                         { _, hour, minute ->
@@ -75,10 +74,7 @@ fun NoteListScreen(
 
                             val selectedTime = calendar.timeInMillis
                             reminderTime = selectedTime
-                            displayTime =
-                                SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(
-                                    calendar.time
-                                )
+                            displayTime = SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
                         },
                         now.get(Calendar.HOUR_OF_DAY),
                         now.get(Calendar.MINUTE),
@@ -94,7 +90,6 @@ fun NoteListScreen(
         }
 
         Text("Nhắc lúc: $displayTime", style = MaterialTheme.typography.labelSmall)
-
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
@@ -108,11 +103,7 @@ fun NoteListScreen(
                         reminderTime = null
                         displayTime = "Chưa chọn"
                     } else {
-                        Toast.makeText(
-                            context,
-                            "Vui lòng chọn thời gian hợp lệ",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(context, "Vui lòng chọn thời gian hợp lệ", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
@@ -136,27 +127,76 @@ fun NoteListScreen(
                         Text(text = note.content)
                         note.reminderTime?.let {
                             Text(
-                                text = "Nhắc lúc: " + SimpleDateFormat(
-                                    "HH:mm dd/MM/yyyy",
-                                    Locale.getDefault()
-                                ).format(Date(it)),
+                                text = "Nhắc lúc: " + SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(it)),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
                         Text(
-                            text = "Tạo lúc: " + SimpleDateFormat(
-                                "HH:mm dd/MM/yyyy",
-                                Locale.getDefault()
-                            ).format(Date(note.lastModified)),
+                            text = "Tạo lúc: " + SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(note.lastModified)),
                             style = MaterialTheme.typography.labelSmall
                         )
-                        TextButton(onClick = { onDeleteNote(note) }) {
-                            Text("Delete")
+
+                        Row {
+                            TextButton(onClick = { onDeleteNote(note) }) {
+                                Text("Delete")
+                            }
+
+                            TextButton(onClick = {
+                                // Huỷ nhắc nhở
+                                ReminderScheduler.cancelReminder(context, note.id.hashCode())
+                                val updated = note.copy(reminderTime = null)
+                                onUpdateNote(updated)
+                            }) {
+                                Text("Huỷ nhắc")
+                            }
+
+                            TextButton(onClick = {
+                                val cal = Calendar.getInstance()
+                                DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        cal.set(Calendar.YEAR, y)
+                                        cal.set(Calendar.MONTH, m)
+                                        cal.set(Calendar.DAY_OF_MONTH, d)
+
+                                        TimePickerDialog(
+                                            context,
+                                            { _, h, min ->
+                                                cal.set(Calendar.HOUR_OF_DAY, h)
+                                                cal.set(Calendar.MINUTE, min)
+                                                cal.set(Calendar.SECOND, 0)
+                                                cal.set(Calendar.MILLISECOND, 0)
+
+                                                val newTime = cal.timeInMillis
+                                                if (newTime > System.currentTimeMillis()) {
+                                                    val updated = note.copy(reminderTime = newTime)
+                                                    onUpdateNote(updated)
+                                                    ReminderScheduler.scheduleReminder(
+                                                        context,
+                                                        note.id.hashCode(),
+                                                        note.title,
+                                                        newTime
+                                                    )
+                                                } else {
+                                                    Toast.makeText(context, "Thời gian không hợp lệ", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            cal.get(Calendar.HOUR_OF_DAY),
+                                            cal.get(Calendar.MINUTE),
+                                            true
+                                        ).show()
+                                    },
+                                    cal.get(Calendar.YEAR),
+                                    cal.get(Calendar.MONTH),
+                                    cal.get(Calendar.DAY_OF_MONTH)
+                                ).show()
+                            }) {
+                                Text("Chỉnh sửa nhắc")
+                            }
                         }
                     }
                 }
             }
         }
-
     }
 }
