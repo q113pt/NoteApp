@@ -11,6 +11,7 @@ data class Note(
     val content: String = "",
     val imageUri: String? = null,
     val voiceUri: String? = null,
+    val audioPath: String? = null,
     val reminderTime: Long? = null,
     val lastModified: Long = System.currentTimeMillis(),
     val isSynced: Boolean = false,
