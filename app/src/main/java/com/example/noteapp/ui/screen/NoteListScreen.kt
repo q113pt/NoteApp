@@ -1,23 +1,18 @@
+
 package com.example.noteapp.ui.screen
 
+import android.Manifest
 import android.app.DatePickerDialog
-import com.example.noteapp.util.ReminderScheduler
 import android.app.TimePickerDialog
-<<<<<<< Updated upstream
-import android.widget.Toast
-=======
 import android.content.Context
-import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
->>>>>>> Stashed changes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,56 +21,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.example.noteapp.model.Note
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun NoteListScreen(
     notes: List<Note>,
-<<<<<<< Updated upstream
-    onAddNote: (String, String, Long) -> Unit,
-=======
     onAddNote: (String, String, Long, String?, String?) -> Unit,
->>>>>>> Stashed changes
     onDeleteNote: (Note) -> Unit,
-    onUpdateNote: (Note) -> Unit // ← thêm hàm này để cập nhật note
+    onUpdateNote: (Note) -> Unit
 ) {
     val context = LocalContext.current
+    val calendar = remember { Calendar.getInstance() }
 
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var reminderTime by remember { mutableStateOf<Long?>(null) }
     var displayTime by remember { mutableStateOf("Chưa chọn") }
-<<<<<<< Updated upstream
-
-    val calendar = remember { Calendar.getInstance() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(text = "My Notes", style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Title") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = content,
-            onValueChange = { content = it },
-            label = { Text("Content") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-=======
 
     var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -85,10 +50,10 @@ fun NoteListScreen(
 
     var imagePath by remember { mutableStateOf<String?>(null) }
 
-    val calendar = remember { Calendar.getInstance() }
+    var editingNote by remember { mutableStateOf<Note?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (!granted) {
             Toast.makeText(context, "Cần quyền ghi âm", Toast.LENGTH_SHORT).show()
@@ -99,7 +64,13 @@ fun NoteListScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            imagePath = getRealPathFromUri(context, it)
+            val inputStream = context.contentResolver.openInputStream(it)
+            val fileName = "image_${System.currentTimeMillis()}.jpg"
+            val file = File(context.filesDir, fileName)
+            inputStream?.use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+            imagePath = file.absolutePath
         }
     }
 
@@ -185,6 +156,7 @@ fun NoteListScreen(
         Toast.makeText(context, "Đã xoá ghi âm", Toast.LENGTH_SHORT).show()
     }
 
+    // Giao diện tạo ghi chú
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("NoteApp", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(12.dp))
@@ -216,43 +188,10 @@ fun NoteListScreen(
             }
         }
 
->>>>>>> Stashed changes
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(onClick = {
             val now = Calendar.getInstance()
-<<<<<<< Updated upstream
-            DatePickerDialog(
-                context,
-                { _, year, month, dayOfMonth ->
-                    calendar.set(Calendar.YEAR, year)
-                    calendar.set(Calendar.MONTH, month)
-                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-
-                    TimePickerDialog(
-                        context,
-                        { _, hour, minute ->
-                            calendar.set(Calendar.HOUR_OF_DAY, hour)
-                            calendar.set(Calendar.MINUTE, minute)
-                            calendar.set(Calendar.SECOND, 0)
-                            calendar.set(Calendar.MILLISECOND, 0)
-
-                            val selectedTime = calendar.timeInMillis
-                            reminderTime = selectedTime
-                            displayTime = SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
-                        },
-                        now.get(Calendar.HOUR_OF_DAY),
-                        now.get(Calendar.MINUTE),
-                        true
-                    ).show()
-                },
-                now.get(Calendar.YEAR),
-                now.get(Calendar.MONTH),
-                now.get(Calendar.DAY_OF_MONTH)
-            ).show()
-        }) {
-            Text("Chọn ngày & giờ nhắc")
-=======
             DatePickerDialog(context, { _, y, m, d ->
                 calendar.set(y, m, d)
                 TimePickerDialog(context, { _, h, min ->
@@ -265,32 +204,12 @@ fun NoteListScreen(
             }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show()
         }) {
             Text("Chọn nhắc")
->>>>>>> Stashed changes
         }
 
         Text("Nhắc lúc: $displayTime", style = MaterialTheme.typography.labelSmall)
+
         Spacer(modifier = Modifier.height(8.dp))
 
-<<<<<<< Updated upstream
-        Button(
-            onClick = {
-                if (title.isNotBlank() || content.isNotBlank()) {
-                    val time = reminderTime
-                    if (time != null && time > System.currentTimeMillis()) {
-                        onAddNote(title, content, time)
-                        title = ""
-                        content = ""
-                        reminderTime = null
-                        displayTime = "Chưa chọn"
-                    } else {
-                        Toast.makeText(context, "Vui lòng chọn thời gian hợp lệ", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            },
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            Text("Add Note")
-=======
         Button(onClick = {
             if (title.isNotBlank() || content.isNotBlank() || audioValid || imagePath != null) {
                 onAddNote(title, content, reminderTime ?: System.currentTimeMillis(), audioFilePath, imagePath)
@@ -306,132 +225,140 @@ fun NoteListScreen(
             }
         }) {
             Text("➕ Thêm ghi chú")
->>>>>>> Stashed changes
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
             items(notes) { note ->
-<<<<<<< Updated upstream
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = note.title, style = MaterialTheme.typography.titleMedium)
-                        Text(text = note.content)
-                        note.reminderTime?.let {
-                            Text(
-                                text = "Nhắc lúc: " + SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(it)),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-=======
                 Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(note.title, style = MaterialTheme.typography.titleMedium)
                         Text(note.content)
+
                         note.imagePath?.let { path ->
                             Image(
                                 painter = rememberAsyncImagePainter(model = path),
                                 contentDescription = "Ảnh",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(150.dp)
+                                modifier = Modifier.fillMaxWidth().height(150.dp)
                             )
                         }
+
+                        note.audioPath?.let {
+                            Text("🎧 Ghi âm", modifier = Modifier.clickable { playAudio(it) })
+                        }
+
                         note.reminderTime?.let {
                             Text("Nhắc: ${SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(it))}")
                         }
-                        note.audioPath?.let {
-                            Text("🎧 Ghi âm", modifier = Modifier.clickable { playAudio(it) })
->>>>>>> Stashed changes
-                        }
-                        Text(
-                            text = "Tạo lúc: " + SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(note.lastModified)),
-                            style = MaterialTheme.typography.labelSmall
-                        )
 
-<<<<<<< Updated upstream
-                        Row {
-                            TextButton(onClick = { onDeleteNote(note) }) {
-                                Text("Delete")
-                            }
+                        Text("Tạo lúc: ${SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(note.lastModified))}", style = MaterialTheme.typography.labelSmall)
 
-=======
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             TextButton(onClick = { onDeleteNote(note) }) { Text("🗑 Xoá") }
->>>>>>> Stashed changes
-                            TextButton(onClick = {
-                                // Huỷ nhắc nhở
-                                ReminderScheduler.cancelReminder(context, note.id.hashCode())
-                                val updated = note.copy(reminderTime = null)
-                                onUpdateNote(updated)
-                            }) {
-                                Text("Huỷ nhắc")
-                            }
-
-                            TextButton(onClick = {
-                                val cal = Calendar.getInstance()
-                                DatePickerDialog(
-                                    context,
-                                    { _, y, m, d ->
-                                        cal.set(Calendar.YEAR, y)
-                                        cal.set(Calendar.MONTH, m)
-                                        cal.set(Calendar.DAY_OF_MONTH, d)
-
-                                        TimePickerDialog(
-                                            context,
-                                            { _, h, min ->
-                                                cal.set(Calendar.HOUR_OF_DAY, h)
-                                                cal.set(Calendar.MINUTE, min)
-                                                cal.set(Calendar.SECOND, 0)
-                                                cal.set(Calendar.MILLISECOND, 0)
-
-                                                val newTime = cal.timeInMillis
-                                                if (newTime > System.currentTimeMillis()) {
-                                                    val updated = note.copy(reminderTime = newTime)
-                                                    onUpdateNote(updated)
-                                                    ReminderScheduler.scheduleReminder(
-                                                        context,
-                                                        note.id.hashCode(),
-                                                        note.title,
-                                                        newTime
-                                                    )
-                                                } else {
-                                                    Toast.makeText(context, "Thời gian không hợp lệ", Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                            cal.get(Calendar.HOUR_OF_DAY),
-                                            cal.get(Calendar.MINUTE),
-                                            true
-                                        ).show()
-                                    },
-                                    cal.get(Calendar.YEAR),
-                                    cal.get(Calendar.MONTH),
-                                    cal.get(Calendar.DAY_OF_MONTH)
-                                ).show()
-                            }) {
-                                Text("Chỉnh sửa nhắc")
-                            }
+                            TextButton(onClick = { editingNote = note }) { Text("✏️ Sửa") }
                         }
                     }
                 }
             }
         }
+
+    }
+
+    // ✅ PHẦN CHỈNH SỬA GHI CHÚ
+    editingNote?.let { noteToEdit ->
+        var newTitle by remember { mutableStateOf(noteToEdit.title) }
+        var newContent by remember { mutableStateOf(noteToEdit.content) }
+        var newReminderTime by remember { mutableStateOf(noteToEdit.reminderTime) }
+        var newDisplayTime by remember {
+            mutableStateOf(
+                noteToEdit.reminderTime?.let {
+                    SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                } ?: "Chưa chọn"
+            )
+        }
+        var newImagePath by remember { mutableStateOf(noteToEdit.imagePath) }
+        var newAudioPath by remember { mutableStateOf(noteToEdit.audioPath) }
+
+        AlertDialog(
+            onDismissRequest = { editingNote = null },
+            confirmButton = {
+                Button(onClick = {
+                    val updated = noteToEdit.copy(
+                        title = newTitle,
+                        content = newContent,
+                        reminderTime = newReminderTime,
+                        imagePath = newImagePath,
+                        audioPath = newAudioPath,
+                        lastModified = System.currentTimeMillis()
+                    )
+                    onUpdateNote(updated)
+                    editingNote = null
+                }) {
+                    Text("Lưu")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingNote = null }) { Text("Huỷ") }
+            },
+            title = { Text("Chỉnh sửa ghi chú") },
+            text = {
+                Column {
+                    OutlinedTextField(value = newTitle, onValueChange = { newTitle = it }, label = { Text("Tiêu đề") })
+                    OutlinedTextField(value = newContent, onValueChange = { newContent = it }, label = { Text("Nội dung") })
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(onClick = {
+                        val now = Calendar.getInstance()
+                        DatePickerDialog(context, { _, y, m, d ->
+                            calendar.set(y, m, d)
+                            TimePickerDialog(context, { _, h, min ->
+                                calendar.set(Calendar.HOUR_OF_DAY, h)
+                                calendar.set(Calendar.MINUTE, min)
+                                calendar.set(Calendar.SECOND, 0)
+                                newReminderTime = calendar.timeInMillis
+                                newDisplayTime = SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
+                            }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true).show()
+                        }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show()
+                    }) {
+                        Text("🕒 Chỉnh thời gian nhắc")
+                    }
+
+                    Text("Nhắc lúc: $newDisplayTime", style = MaterialTheme.typography.labelSmall)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    newImagePath?.let {
+                        Text("Ảnh đính kèm:", style = MaterialTheme.typography.labelSmall)
+                        Image(
+                            painter = rememberAsyncImagePainter(it),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                        )
+                        TextButton(onClick = { newImagePath = null }) {
+                            Text("❌ Xoá ảnh", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+
+                    newAudioPath?.let {
+                        Text("Ghi âm đính kèm", style = MaterialTheme.typography.labelSmall)
+                        Row {
+                            Button(onClick = { playAudio(it) }) { Text("▶️ Phát") }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(onClick = {
+                                File(it).delete()
+                                newAudioPath = null
+                            }) {
+                                Text("❌ Xoá ghi âm", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
-// Helper để lấy đường dẫn thật từ Uri
-fun getRealPathFromUri(context: Context, uri: Uri): String? {
-    val projection = arrayOf(MediaStore.Images.Media.DATA)
-    context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-        val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-        if (cursor.moveToFirst()) {
-            return cursor.getString(columnIndex)
-        }
-    }
-    return uri.path
-}
