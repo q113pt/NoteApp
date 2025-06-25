@@ -34,11 +34,13 @@ class MainActivity : ComponentActivity() {
             NoteAppTheme {
                 NoteListScreen(
                     notes = notes,
-                    onAddNote = { title, content, reminderTime ->
+                    onAddNote = { title, content, reminderTime, audioPath, imagePath ->
                         val note = Note(
                             title = title,
                             content = content,
-                            reminderTime = reminderTime
+                            reminderTime = reminderTime,
+                            audioPath = audioPath,
+                            imagePath = imagePath
                         )
                         viewModel.insert(note)
 

@@ -61,7 +61,7 @@ dependencies {
     implementation(libs.lifecycle.livedata.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
-
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
 
     // Firebase

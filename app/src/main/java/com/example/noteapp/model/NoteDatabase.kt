@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.noteapp.model.Note
 
-@Database(entities = [Note::class], version = 1, exportSchema = false)
+@Database(entities = [Note::class], version = 2, exportSchema = false) // ⚠️ nhớ tăng version nếu thay đổi schema
 abstract class NoteDatabase : RoomDatabase() {
 
     abstract fun noteDao(): NoteDao
@@ -20,7 +20,9 @@ abstract class NoteDatabase : RoomDatabase() {
                     context.applicationContext,
                     NoteDatabase::class.java,
                     "note_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // ✅ reset DB nếu thay đổi schema
+                    .build()
                 INSTANCE = instance
                 instance
             }
