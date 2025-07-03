@@ -44,7 +44,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.13" //
+        kotlinCompilerExtensionVersion = "1.5.13"
     }
 }
 
@@ -60,9 +60,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.lifecycle.livedata.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
-    implementation("io.coil-kt:coil-compose:2.5.0")
-
+    implementation(libs.datetime)
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.material.icons.extended)
 
     // Firebase
     implementation(platform(libs.firebase.bom))
@@ -100,6 +101,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
 configurations.all {
     exclude(group = "com.android.support", module = "support-compat")
 }
