@@ -10,37 +10,29 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
 import com.example.noteapp.model.Note
+import com.example.noteapp.ui.component.NoteEditDialog
+import com.example.noteapp.ui.component.NoteItem
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteListScreen(
     notes: List<Note>,
     onAddNote: (String, String, Long, String?, String?) -> Unit,
     onDeleteNote: (Note) -> Unit,
-    onUpdateNote: (Note) -> Unit
+    onUpdateNote: (Note) -> Unit,
+    onNoteClick: (Note) -> Unit
 ) {
     val context = LocalContext.current
     val calendar = remember { Calendar.getInstance() }
@@ -57,7 +49,6 @@ fun NoteListScreen(
     var audioValid by remember { mutableStateOf(false) }
 
     var imagePath by remember { mutableStateOf<String?>(null) }
-
     var editingNote by remember { mutableStateOf<Note?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -75,9 +66,7 @@ fun NoteListScreen(
             val inputStream = context.contentResolver.openInputStream(it)
             val fileName = "image_${System.currentTimeMillis()}.jpg"
             val file = File(context.filesDir, fileName)
-            inputStream?.use { input ->
-                file.outputStream().use { output -> input.copyTo(output) }
-            }
+            inputStream?.use { input -> file.outputStream().use { output -> input.copyTo(output) } }
             imagePath = file.absolutePath
         }
     }
@@ -108,7 +97,6 @@ fun NoteListScreen(
             audioFilePath = file.absolutePath
             isRecording = true
             audioValid = false
-
         } catch (e: Exception) {
             recorder = null
             isRecording = false
@@ -139,32 +127,6 @@ fun NoteListScreen(
         }
     }
 
-    fun playAudio(path: String?) {
-        if (path.isNullOrEmpty() || !File(path).exists()) {
-            Toast.makeText(context, "File không tồn tại", Toast.LENGTH_SHORT).show()
-            return
-        }
-        try {
-            player?.release()
-            player = MediaPlayer().apply {
-                setDataSource(path)
-                prepare()
-                start()
-            }
-        } catch (e: Exception) {
-            Toast.makeText(context, "Không phát được: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    fun deleteAudio() {
-        val file = File(audioFilePath ?: return)
-        if (file.exists()) file.delete()
-        audioFilePath = null
-        audioValid = false
-        Toast.makeText(context, "Đã xoá ghi âm", Toast.LENGTH_SHORT).show()
-    }
-
-    // Giao diện tạo ghi chú
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("NoteApp", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(12.dp))
@@ -190,9 +152,31 @@ fun NoteListScreen(
             Spacer(modifier = Modifier.width(8.dp))
 
             if (audioValid && !isRecording) {
-                Button(onClick = { playAudio(audioFilePath) }) { Text("▶️ Phát") }
+                Button(onClick = {
+                    val path = audioFilePath
+                    if (!path.isNullOrEmpty() && File(path).exists()) {
+                        player?.release()
+                        player = MediaPlayer().apply {
+                            setDataSource(path)
+                            prepare()
+                            start()
+                        }
+                    }
+                }) { Text("▶️ Phát") }
+
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = { deleteAudio() }) { Text("❌ Xoá") }
+
+                Button(onClick = {
+                    val file = audioFilePath?.let { File(it) }
+                    if (file != null && file.exists()) {
+                        file.delete()
+                        audioFilePath = null
+                        audioValid = false
+                        Toast.makeText(context, "Đã xoá ghi âm", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Text("❌ Xoá")
+                }
             }
         }
 
@@ -239,135 +223,39 @@ fun NoteListScreen(
 
         LazyColumn {
             items(notes) { note ->
-                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(note.title, style = MaterialTheme.typography.titleMedium)
-                        Text(note.content)
-
-                        note.imagePath?.let { path ->
-                            Image(
-                                painter = rememberAsyncImagePainter(model = path),
-                                contentDescription = "Ảnh",
-                                modifier = Modifier.fillMaxWidth().height(150.dp)
-                            )
-                        }
-
-                        note.audioPath?.let {
-                            Text("🎧 Ghi âm", modifier = Modifier.clickable { playAudio(it) })
-                        }
-
-                        note.reminderTime?.let {
-                            Text("Nhắc: ${SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(it))}")
-                        }
-
-                        Text("Tạo lúc: ${SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(note.lastModified))}", style = MaterialTheme.typography.labelSmall)
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { onDeleteNote(note) }) { Text("🗑 Xoá") }
-                            TextButton(onClick = { editingNote = note }) { Text("✏️ Sửa") }
+                NoteItem(
+                    note = note,
+                    onDelete = onDeleteNote,
+                    onUpdate = { editingNote = it },
+                    onClick = { onNoteClick(note) },
+                    onPlayAudio = { path ->
+                        if (!path.isNullOrEmpty() && File(path).exists()) {
+                            player?.release()
+                            player = MediaPlayer().apply {
+                                setDataSource(path)
+                                prepare()
+                                start()
+                            }
+                        } else {
+                            Toast.makeText(context, "Không tìm thấy file ghi âm", Toast.LENGTH_SHORT).show()
                         }
                     }
-                }
+                )
             }
         }
-
     }
 
-    // ✅ PHẦN CHỈNH SỬA GHI CHÚ
-    editingNote?.let { noteToEdit ->
-        var newTitle by remember { mutableStateOf(noteToEdit.title) }
-        var newContent by remember { mutableStateOf(noteToEdit.content) }
-        var newReminderTime by remember { mutableStateOf(noteToEdit.reminderTime) }
-        var newDisplayTime by remember {
-            mutableStateOf(
-                noteToEdit.reminderTime?.let {
-                    SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(Date(it))
-                } ?: "Chưa chọn"
-            )
-        }
-        var newImagePath by remember { mutableStateOf(noteToEdit.imagePath) }
-        var newAudioPath by remember { mutableStateOf(noteToEdit.audioPath) }
-
-        AlertDialog(
-            onDismissRequest = { editingNote = null },
-            confirmButton = {
-                Button(onClick = {
-                    val updated = noteToEdit.copy(
-                        title = newTitle,
-                        content = newContent,
-                        reminderTime = newReminderTime,
-                        imagePath = newImagePath,
-                        audioPath = newAudioPath,
-                        lastModified = System.currentTimeMillis()
-                    )
-                    onUpdateNote(updated)
-                    editingNote = null
-                }) {
-                    Text("Lưu")
-                }
+    editingNote?.let {
+        NoteEditDialog(
+            context = context,
+            noteToEdit = it,
+            onUpdate = {
+                onUpdateNote(it)
+                editingNote = null
             },
-            dismissButton = {
-                TextButton(onClick = { editingNote = null }) { Text("Huỷ") }
-            },
-            title = { Text("Chỉnh sửa ghi chú") },
-            text = {
-                Column {
-                    OutlinedTextField(value = newTitle, onValueChange = { newTitle = it }, label = { Text("Tiêu đề") })
-                    OutlinedTextField(value = newContent, onValueChange = { newContent = it }, label = { Text("Nội dung") })
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(onClick = {
-                        val now = Calendar.getInstance()
-                        DatePickerDialog(context, { _, y, m, d ->
-                            calendar.set(y, m, d)
-                            TimePickerDialog(context, { _, h, min ->
-                                calendar.set(Calendar.HOUR_OF_DAY, h)
-                                calendar.set(Calendar.MINUTE, min)
-                                calendar.set(Calendar.SECOND, 0)
-                                newReminderTime = calendar.timeInMillis
-                                newDisplayTime = SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
-                            }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true).show()
-                        }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).show()
-                    }) {
-                        Text("🕒 Chỉnh thời gian nhắc")
-                    }
-
-                    Text("Nhắc lúc: $newDisplayTime", style = MaterialTheme.typography.labelSmall)
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    newImagePath?.let {
-                        Text("Ảnh đính kèm:", style = MaterialTheme.typography.labelSmall)
-                        Image(
-                            painter = rememberAsyncImagePainter(it),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                        )
-                        TextButton(onClick = { newImagePath = null }) {
-                            Text("❌ Xoá ảnh", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-
-                    newAudioPath?.let {
-                        Text("Ghi âm đính kèm", style = MaterialTheme.typography.labelSmall)
-                        Row {
-                            Button(onClick = { playAudio(it) }) { Text("▶️ Phát") }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(onClick = {
-                                File(it).delete()
-                                newAudioPath = null
-                            }) {
-                                Text("❌ Xoá ghi âm", color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
-                }
+            onDismiss = {
+                editingNote = null
             }
         )
     }
-
 }
-

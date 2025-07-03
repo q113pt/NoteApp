@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
@@ -20,6 +23,7 @@ import com.example.noteapp.util.ReminderScheduler
 import com.example.noteapp.viewModel.NoteViewModel
 import com.example.noteapp.viewModel.NoteViewModelFactory
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(context: Context) {
     val navController = rememberNavController()
@@ -76,6 +80,9 @@ fun MainScreen(context: Context) {
                             context = context,
                             noteId = updatedNote.id.hashCode()
                         )
+                    },
+                    onNoteClick = { note ->
+                        navController.navigate("note_detail/${note.id}")
                     }
                 )
             }
@@ -86,6 +93,59 @@ fun MainScreen(context: Context) {
 
             composable("profile") {
                 ProfileScreen()
+            }
+
+            composable("note_detail/{noteId}") { backStackEntry ->
+                val noteId = backStackEntry.arguments?.getString("noteId")
+                val note = notes.find { it.id == noteId }
+
+                if (note != null) {
+                    NoteDetailScreen(
+                        note = note,
+                        onUpdate = { updatedNote ->
+                            viewModel.update(updatedNote)
+                            updatedNote.reminderTime?.let {
+                                ReminderScheduler.scheduleReminder(
+                                    context = context,
+                                    noteId = updatedNote.id.hashCode(),
+                                    noteTitle = updatedNote.title,
+                                    triggerAtMillis = it
+                                )
+                            } ?: ReminderScheduler.cancelReminder(
+                                context = context,
+                                noteId = updatedNote.id.hashCode()
+                            )
+                        },
+                        onDelete = { deletedNote ->
+                            viewModel.delete(deletedNote)
+                            ReminderScheduler.cancelReminder(
+                                context = context,
+                                noteId = deletedNote.id.hashCode()
+                            )
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                } else {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = { Text("Chi tiết ghi chú") },
+                                navigationIcon = {
+                                    IconButton(onClick = { navController.popBackStack() }) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Trở về")
+                                    }
+                                }
+                            )
+                        }
+                    ) { padding ->
+                        Text(
+                            text = "Không tìm thấy ghi chú.",
+                            modifier = Modifier
+                                .padding(padding)
+                                .padding(16.dp)
+                        )
+                    }
+                }
             }
         }
     }
